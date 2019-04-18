@@ -325,7 +325,8 @@ static void cdc_acm_read_cb(u8_t ep, int size, void *priv)
 	struct cdc_acm_dev_data_t *dev_data = priv;
 	size_t wrote;
 
-	LOG_DBG("ep %x size %d dev_data %p", ep, size, dev_data);
+	LOG_DBG("ep %x size %d dev_data %p rx_ringbuf space %u",
+		ep, size, dev_data, ring_buf_space_get(dev_data->rx_ringbuf));
 
 	if (size <= 0) {
 		goto done;
@@ -558,7 +559,8 @@ static int cdc_acm_fifo_fill(struct device *dev,
 	struct cdc_acm_dev_data_t * const dev_data = DEV_DATA(dev);
 	size_t wrote;
 
-	LOG_DBG("dev %p len %d", dev, len);
+	LOG_DBG("dev_data %p len %d tx_ringbuf space %u",
+		dev_data, len, ring_buf_space_get(dev_data->tx_ringbuf));
 
 	if (dev_data->usb_status != USB_DC_CONFIGURED) {
 		return 0;
@@ -591,7 +593,8 @@ static int cdc_acm_fifo_read(struct device *dev, u8_t *rx_data, const int size)
 	struct cdc_acm_dev_data_t * const dev_data = DEV_DATA(dev);
 	u32_t len;
 
-	LOG_DBG("dev %p size %d", dev, size);
+	LOG_DBG("dev %p size %d rx_ringbuf space %u",
+		dev, size, ring_buf_space_get(dev_data->rx_ringbuf));
 
 	len = ring_buf_get(dev_data->rx_ringbuf, rx_data, size);
 
