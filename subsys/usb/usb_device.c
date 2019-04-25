@@ -237,20 +237,19 @@ static void usb_data_to_host(u16_t len)
 {
 	u32_t chunk = usb_dev.data_buf_residue;
 
-#if CONFIG_USB_NRF52840
-	if ((chunk == USB_MAX_CTRL_MPS) && (len > USB_MAX_CTRL_MPS)) {
-		usb_dc_ep_write_zlp(USB_CONTROL_IN_EP0, usb_dev.data_buf,
-				    chunk, &chunk);
-	} else {
-		usb_dc_ep_write(USB_CONTROL_IN_EP0, usb_dev.data_buf,
-				chunk, &chunk);
-	}
-#else
-	usb_dc_ep_write(USB_CONTROL_IN_EP0, usb_dev.data_buf, chunk, &chunk);
-#endif
 	/*Always EP0 for control*/
+	usb_dc_ep_write(0x80, usb_dev.data_buf, chunk, &chunk);
 	usb_dev.data_buf += chunk;
 	usb_dev.data_buf_residue -= chunk;
+
+	/* TODO: comment here */
+	if (!usb_dev.data_buf_residue && chunk == 64 && len > chunk) {
+		int ret;
+
+		do {
+			ret = usb_dc_ep_write(0x80, NULL, 0, NULL);
+		} while (ret == -EAGAIN);
+	}
 }
 
 /*
