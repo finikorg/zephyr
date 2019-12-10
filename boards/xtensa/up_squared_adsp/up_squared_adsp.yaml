@@ -3,4 +3,12 @@ name: Up Squared Audio DSP using CAVS (Connected Audio Voice and Speech)
 type: mcu
 arch: xtensa
 toolchain:
-  - xcc
+  - zephyr
+testing:
+  default: true
+  ignore_tags:
+     - net
+     - posix
+     - cpp
+     - jwt
+     - newlib
