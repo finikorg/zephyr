@@ -286,4 +286,27 @@ config SHELL_PROMPT_DUMMY
 	help
 	  Displayed prompt name for DUMMY backend.
 
+config SHELL_BACKEND_IPM
+	bool "Enable IPM backend"
+	help
+	  Enable IPM backend for access shell over IPM.
+
+if SHELL_BACKEND_IPM
+
+config SHELL_PROMPT_IPM
+	string "Displayed prompt name"
+	default "ipm:~$ "
+	help
+	  Displayed prompt name for IPM backend.
+
+module = SHELL_IPM_INIT
+module-str = Initial IPM shell backend
+source "subsys/logging/Kconfig.template.log_config"
+
+module = SHELL_IPM
+module-str = IPM shell backend
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SHELL_BACKEND_IPM
+
 endif # SHELL_BACKENDS
