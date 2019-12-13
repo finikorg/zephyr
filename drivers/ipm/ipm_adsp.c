@@ -23,7 +23,7 @@ LOG_MODULE_REGISTER(ipm_adsp, CONFIG_IPM_LOG_LEVEL);
 #define DT_IPM_ADSP_0_IRQ_PRI		3
 
 /* FIXME: set to 64 for now */
-#define IPM_ADSP_MAX_DATA_SIZE		64
+#define IPM_ADSP_MAX_DATA_SIZE		256
 #define IPM_ADSP_MAX_ID_VAL		IPC_DIPCI_MSG_MASK
 
 /* Mailbox ADSP -> Host */
