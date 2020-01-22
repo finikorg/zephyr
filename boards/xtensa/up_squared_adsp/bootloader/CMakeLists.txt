@@ -12,11 +12,13 @@ target_include_directories(boot_module PUBLIC
   ${SOC_DIR}/${ARCH}/${SOC_PATH}/include
   )
 
+set(xtensa_hal ${PROJECT_SOURCE_DIR}/../modules/hal/xtensa)
+
 add_executable(bootloader
-  _vectors.S
+  ${xtensa_hal}/zephyr/soc/${SOC_PATH}/${ARCH}/_vectors.S
+  ${xtensa_hal}/zephyr/soc/${SOC_PATH}/${ARCH}/reset-vector.S
   boot_entry.S
   ${ARCH_DIR}/${ARCH}/core/startup/memctl_default.S
-  reset-vector.S
   boot_loader.c
   )
 
