@@ -428,7 +428,7 @@ static bool handle_nmi(void)
 	status = sys_in8(NMI_STS_CNT_REG);
 
 	if (!(status & NMI_STS_SRC_SERR)) {
-		LOG_DBG("Skip NMI, NMI_STS_CNT: 0x%x", status);
+		//LOG_DBG("Skip NMI, NMI_STS_CNT: 0x%x", status);
 		/**
 		 * We should be able to find that this NMI we
 		 * should not handle and return false. However this
@@ -437,7 +437,7 @@ static bool handle_nmi(void)
 		return true;
 	}
 
-	LOG_DBG("core: %d status 0x%x", arch_curr_cpu()->id, status);
+	//LOG_DBG("core: %d status 0x%x", arch_curr_cpu()->id, status);
 
 	/* Re-enable */
 
@@ -459,17 +459,16 @@ bool z_x86_do_kernel_nmi(const z_arch_esf_t *esf)
 	bool ret = true;
 	uint64_t ecclog;
 
-	key = k_spin_lock(&nmi_lock);
+	/* Skip the same NMI handling for other cores and return handled */
+	if (arch_curr_cpu()->id) {
+		return true;
+	}
+
+	//key = k_spin_lock(&nmi_lock);
 
 	if (!handle_nmi()) {
 		/* Indicate that we do not handle this NMI */
 		ret = false;
-		goto out;
-	}
-
-	/* Skip the same NMI handling for other cores and return handled */
-	if (arch_curr_cpu()->id) {
-		ret = true;
 		goto out;
 	}
 
@@ -485,7 +484,7 @@ bool z_x86_do_kernel_nmi(const z_arch_esf_t *esf)
 	ibecc_errsts_clear(PCI_HOST_BRIDGE);
 
 out:
-	k_spin_unlock(&nmi_lock, key);
+	//k_spin_unlock(&nmi_lock, key);
 
 	return ret;
 }

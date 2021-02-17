@@ -17,6 +17,7 @@
 #if defined(CONFIG_EDAC_ERROR_INJECT)
 #define TEST_ADDRESS1		0x1000
 #define TEST_ADDRESS2		0x2000
+#define TEST_ADDRESS3		0x3000
 #define TEST_DATA		0xface
 #define TEST_ADDRESS_MASK	INJ_ADDR_BASE_MASK_MASK
 #define DURATION		100
@@ -235,7 +236,84 @@ static void test_ibecc_error_inject_test_uc(void)
 		     NULL);
 #endif
 }
-#else
+
+#define MAX_MSGS 4
+K_MSGQ_DEFINE(mqueue, sizeof(struct ibecc_error), MAX_MSGS, 4);
+
+static int check_values_mqueue(void *p1, void *p2, void *p3)
+{
+	intptr_t address = (intptr_t)p1;
+	intptr_t type = (intptr_t)p2;
+	struct ibecc_error error;
+
+#if defined(CONFIG_USERSPACE)
+	TC_PRINT("Test communication in user mode thread\n");
+	zassert_true(_is_user_context(), "thread left in kernel mode");
+#endif
+
+	while (true) {
+		k_msgq_get(&mqueue, &error, K_FOREVER);
+
+		TC_PRINT("Got mqueue message\n");
+
+		/* Verify page address and error type */
+		zassert_equal(error.address, address, "Error address wrong");
+		zassert_equal(error.type, type, "Error type wrong");
+	}
+
+	return 0;
+}
+
+static void callback_mqueue(const struct device *dev, void *data)
+{
+	struct ibecc_error *error_data = data;
+	int ret;
+
+	ret = k_msgq_put(&mqueue, error_data, K_NO_WAIT);
+	zassert_equal(ret, 0, "Error msgq_put()");
+}
+
+static void delayed_work_handler(struct k_work *work);
+K_DELAYED_WORK_DEFINE(delayed_work, delayed_work_handler);
+
+static void delayed_work_handler(struct k_work *work)
+{
+	static int i = 0;
+	uint64_t test_addr;
+
+	TC_PRINT("Running delayed work %d\n", i++);
+
+	k_sleep(K_MSEC(2000));
+
+	device_map((mm_reg_t *)&test_addr, TEST_ADDRESS3, 0x100, K_MEM_CACHE_NONE);
+	sys_read32(test_addr);
+	
+	k_sleep(K_MSEC(2000));
+
+	TC_PRINT("Submit next work\n");
+	k_sleep(K_MSEC(2000));
+	k_delayed_work_submit(&delayed_work, K_MSEC(500));
+}
+
+static void test_ibecc_error_inject_test_mqueue(void)
+{
+	int ret;
+
+	ret = edac_notify_callback_set(dev, callback_mqueue);
+	zassert_equal(ret, 0, "Error setting notification callback");
+
+	/* Test injecting correctable error at address TEST_ADDRESS1 */
+	test_inject(TEST_ADDRESS3, TEST_ADDRESS_MASK, EDAC_ERROR_TYPE_DRAM_COR);
+
+	k_delayed_work_submit(&delayed_work, K_MSEC(10));
+
+	k_thread_access_grant(k_current_get(), &mqueue);
+	k_thread_user_mode_enter((k_thread_entry_t)check_values_mqueue,
+				 (void *)TEST_ADDRESS3,
+				 (void *)EDAC_ERROR_TYPE_DRAM_COR,
+				 NULL);
+}
+#else /* CONFIG_EDAC_ERROR_INJECT */
 static void test_ibecc_error_inject_test_cor(void)
 {
 	ztest_test_skip();
@@ -245,7 +323,12 @@ static void test_ibecc_error_inject_test_uc(void)
 {
 	ztest_test_skip();
 }
-#endif
+
+static void test_ibecc_error_inject_test_mqueue(void)
+{
+	ztest_test_skip();
+}
+#endif /* CONFIG_EDAC_ERROR_INJECT */
 
 void test_main(void)
 {
@@ -258,7 +341,8 @@ void test_main(void)
 			 ztest_unit_test(test_ibecc_api),
 			 ztest_unit_test(test_ibecc_error_inject_api),
 			 ztest_unit_test(test_ibecc_error_inject_test_cor),
-			 ztest_unit_test(test_ibecc_error_inject_test_uc)
+			 ztest_unit_test(test_ibecc_error_inject_test_uc),
+			 ztest_unit_test(test_ibecc_error_inject_test_mqueue)
 			);
 	ztest_run_test_suite(ibecc);
 }
