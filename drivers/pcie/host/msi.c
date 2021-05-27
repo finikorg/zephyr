@@ -127,7 +127,6 @@ uint8_t pcie_msi_vectors_allocate(pcie_bdf_t bdf,
 		}
 
 		msi = false;
-		base = base_msix;
 	}
 
 	if (IS_ENABLED(CONFIG_PCIE_MSI_X)) {
@@ -278,8 +277,11 @@ bool pcie_msi_enable(pcie_bdf_t bdf,
 			disable_msi(bdf, base);
 		}
 
+		if (base_msix != 0U) {
+			base = base_msix;
+		}
+
 		msi = false;
-		base = base_msix;
 	}
 
 	if (base == 0U) {
